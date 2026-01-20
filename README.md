@@ -39,7 +39,7 @@ mkdir -p ws/src && cd ws/src
 git clone https://github.com/liang-hong/swarm_topology_bridge.git
 # build
 cd ..
-catkin_make
+catkin build swarm_topology_bridge
 source devel/setup.bash
 ```
 
