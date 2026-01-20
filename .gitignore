@@ -1,0 +1,28 @@
+# ROS/catkin
+build/
+devel/
+log/
+.catkin_tools/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+.env
+
+# IDE
+.vscode/
+.trae/
+.idea/
+
+# Packaging
+dist/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+

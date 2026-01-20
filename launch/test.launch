@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="swarm_topology_bridge" type="bridge_node.py" name="swarm_bridge" output="screen">
+    <rosparam file="$(find swarm_topology_bridge)/config/topology.yaml" command="load" />
+  </node>
+</launch>

@@ -1,0 +1,8 @@
+<launch>
+  <!-- 单机仿真：使用回环拓扑，将本机话题通过ZMQ发出并接收回来 -->
+  <node pkg="swarm_topology_bridge" type="bridge_node.py" name="swarm_bridge_single" output="screen">
+    <rosparam file="$(find swarm_topology_bridge)/config/topology_sim_single.yaml" command="load" />
+    <!-- 覆盖主机名为 UAV_A，确保与配置匹配 -->
+    <param name="uav_name" value="UAV_A" />
+  </node>
+</launch>

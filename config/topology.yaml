@@ -1,0 +1,21 @@
+uavs:
+  - {name: UAV6, ip: 192.168.5.61}
+  - {name: UAV7, ip: 192.168.5.71}
+  - {name: UAV8, ip: 192.168.5.81}
+  - {name: UAV9, ip: 192.168.5.91}
+
+topics:
+  - {name: mavros/state,                   type: mavros_msgs/State}
+  - {name: mavros/time_reference,          type: mavros_msgs/TimeReference}
+  - {name: mavros/global_position/global,  type: sensor_msgs/NavSatFix}
+  - {name: mavros/local_position/odom,     type: nav_msgs/Odometry}
+  - {name: mavros/rc/in,                   type: mavros_msgs/RCIn}
+
+max_freq: 50
+base_port: 3000
+
+topology:
+  UAV6: [UAV7, UAV8, UAV9]
+  UAV7: [UAV6, UAV8, UAV9]
+  UAV8: [UAV6, UAV7, UAV9]
+  UAV9: [UAV6, UAV7, UAV8]

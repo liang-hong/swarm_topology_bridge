@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>swarm_topology_bridge</name>
+  <version>0.1.0</version>
+  <description>Topology-driven ROS bridge using ZeroMQ, runtime-configurable without recompilation</description>
+  <url>https://github.com/liang-hong/swarm_topology_bridge</url>
+  <maintainer email="1851771213@qq.com">Hongtao Liang</maintainer>
+  <license>BSD-3-Clause</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>roslib</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>mavros_msgs</exec_depend>
+</package>

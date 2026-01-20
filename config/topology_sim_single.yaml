@@ -1,0 +1,12 @@
+uavs:
+  - {name: UAV_A, ip: 127.0.0.1}
+
+topics:
+  - {name: chatter, type: std_msgs/String}
+
+max_freq: 1000
+base_port: 3100
+
+topology:
+  # 单机回环：自身接收自身发送的数据
+  UAV_A: [UAV_A]
