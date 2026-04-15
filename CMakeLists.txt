@@ -15,6 +15,7 @@ catkin_package()
 
 install(PROGRAMS
   scripts/bridge_node.py
+  scripts/test_chatter.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
