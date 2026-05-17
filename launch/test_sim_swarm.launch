@@ -1,0 +1,18 @@
+<launch>
+  <!-- 仿真多机测试启动文件 -->
+  <!-- 启动方式：export ROS_MASTER_URI=http://localhost:11311; roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6 -->
+  <!-- 然后开新终端：export ROS_MASTER_URI=http://localhost:11312; roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV7 -->
+
+  <arg name="uav_name" default="UAV6" />
+
+  <!-- 1. 启动桥接节点 -->
+  <node pkg="swarm_topology_bridge" type="bridge_node.py" name="swarm_bridge" output="screen">
+    <rosparam file="$(find swarm_topology_bridge)/config/topology_sim_swarm.yaml" command="load" />
+    <param name="uav_name" value="$(arg uav_name)" />
+  </node>
+
+  <!-- 2. 启动测试脚本 -->
+  <node pkg="swarm_topology_bridge" type="test_swarm_chatter.py" name="test_chatter" output="screen">
+    <param name="uav_name" value="$(arg uav_name)" />
+  </node>
+</launch>

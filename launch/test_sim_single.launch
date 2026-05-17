@@ -1,0 +1,15 @@
+<launch>
+  <!-- 单机仿真：使用回环拓扑，将本机话题通过ZMQ发出并接收回来 -->
+  <arg name="uav_name" default="UAV_A" />
+
+  <!-- 1. 启动桥接节点 -->
+  <node pkg="swarm_topology_bridge" type="bridge_node.py" name="swarm_bridge" output="screen">
+    <rosparam file="$(find swarm_topology_bridge)/config/topology_sim_single.yaml" command="load" />
+    <param name="uav_name" value="$(arg uav_name)" />
+  </node>
+
+  <!-- 2. 启动集成测试脚本 -->
+  <node pkg="swarm_topology_bridge" type="test_swarm_chatter.py" name="test_chatter_single" output="screen">
+    <param name="uav_name" value="$(arg uav_name)" />
+  </node>
+</launch>

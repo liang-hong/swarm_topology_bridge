@@ -1,40 +1,45 @@
-swarm_topology_bridge
+# swarm_topology_bridge
 
-[English](README.md) | 中文
+[English](README.md) | [中文]
 
-基于 ZeroMQ 的拓扑驱动 ROS 桥（Python 实现），支持运行时配置，无需重新编译。
+基于 ZeroMQ (Python) 的拓扑驱动型 ROS 桥接工具，运行时配置，无需重新编译。
 
-介绍
-- 通过 ZeroMQ 套接字在多机器人之间传输指定的 ROS 主题的轻量桥接节点。
-- 面向集群/编队场景，强调灵活的主题选择与对等发现。
+## 简介
+- 一款轻量级的 ROS 桥接节点，利用 ZeroMQ 套接字在不同机器人之间传输指定的 ROS 话题。
+- 专为集群场景设计，强调节点发现的灵活性和话题选择的可控性。
+- 同时支持**实机多机部署**与**单机多 Master 隔离仿真**。
 
-优势
-- 稳健：不依赖中心 ROS master，节点可任意顺序启动并自主连接。
-- 灵活：仅配置需要的发送/接收主题，而非镜像所有主题。
-- 易用：在单个 YAML 文件中管理 IP 与主题。
-- 可靠/轻量：基于 TCP 的 ZeroMQ PUB/SUB 更适合无线环境下的稳健传输。
+## 优势
+- **去中心化**：不依赖统一的 ROS Master；各节点可按任意顺序启动并自动建立连接。
+- **配置灵活**：在 YAML 中精确定义发送/接收的话题，避免冗余数据传输。
+- **易于使用**：在一个配置文件中管理所有 IP、话题以及用于仿真的**端口偏移 (Port Offset)**。
+- **命名空间隔离**：自动为接收到的远程话题添加来源无人机前缀（如 `/UAV6/pose`），有效防止集群中同名话题冲突。
 
-目录结构
+## 文件结构
 ```bash
 └── swarm_topology_bridge
     ├── CMakeLists.txt
     ├── config
-    │   ├── topology.yaml
-    │   └── topology_sim_single.yaml
+    │   ├── topology.yaml             # 实机部署默认配置
+    │   ├── topology_sim_swarm.yaml   # 多 Master 联合仿真配置
+    │   └── topology_sim_single.yaml  # 单机回环测试配置
     ├── launch
     │   ├── test.launch
-    │   └── latency_test_single.launch
+    │   ├── test_sim_swarm.launch     # 仿真多机集成测试启动文件
+    │   └── test_sim_single.launch    # 仿真单机回环测试启动文件
     ├── package.xml
     └── scripts
-        └── bridge_node.py
+        ├── bridge_node.py            # 核心桥接节点
+        └── test_swarm_chatter.py     # 通用连通性测试脚本
 ```
 
-安装
-- 支持：ROS1（如 Kinetic/Melodic/Noetic）与 Python 的 rospy/roslib 运行环境。
-- 步骤：
+## 安装
+- 支持环境：Ubuntu 上的 ROS1 (如 Melodic/Noetic)；Python 3。
+- 依赖项：`pip3 install pyzmq`
+
 ```bash
-# 创建工作区
-mkdir -p ws/src && cd ws/src
+# 创建工作空间
+mkdir -p catkin_ws/src && cd catkin_ws/src
 # 克隆仓库
 git clone https://github.com/liang-hong/swarm_topology_bridge.git
 # 编译
@@ -43,22 +48,37 @@ catkin build swarm_topology_bridge
 source devel/setup.bash
 ```
 
-使用
-1. 编辑 config/topology.yaml（或 topology_sim_single.yaml），设置 IP、端口与主题。
-2. 启动：
+> **注意**：本项目推荐使用 `catkin_tools` 进行编译。使用 `catkin build` 可以实现更好的包隔离和并行编译。同时，本项目依然完全兼容传统的 `catkin_make` 编译方式，您可以根据现有工作空间的习惯进行选择。
+
+## 使用说明
+
+### 1. 实机部署
+修改 `config/topology.yaml` 以设置物理 IP 和需要传输的话题。
 ```bash
 roslaunch swarm_topology_bridge test.launch
-# 或
-roslaunch swarm_topology_bridge latency_test_single.launch
 ```
-3. 向配置的发送主题发布消息，检查远端接收主题是否正确收到；首次接收会打印 INFO。
 
-与其他仓库的关系
-- 参考来源：C++ 项目 swarm_ros_bridge（上游链接：https://github.com/shupx/swarm_ros_bridge）。
-- 独立重构：本仓库非 fork，借鉴其设计与接口约定；不直接复制源代码。如确有少量片段引用，将在文件头标注来源与版权。
+### 2. 多 Master 联合仿真 (单机模拟)
+通过 `port_offset` 模拟多台独立的机载电脑环境。
+1. **终端 1 (模拟 UAV6)**:
+   ```bash
+   export ROS_MASTER_URI=http://localhost:11311
+   roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6
+   ```
+2. **终端 2 (模拟 UAV7)**:
+   ```bash
+   export ROS_MASTER_URI=http://localhost:11312
+   roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV7
+   ```
 
-许可证
-- BSD-3-Clause（详见 LICENSE 与 package.xml）。
+### 3. 单机回环测试
+```bash
+roslaunch swarm_topology_bridge test_sim_single.launch
+```
 
-关键词
-- ros、zeromq、bridge、swarm、topology、python
+## 项目渊源
+- 受 C++ 项目 [swarm_ros_bridge](https://github.com/shupx/swarm_ros_bridge) 启发。
+- 本仓库为 Python 重构版本，针对配置灵活性和仿真适配进行了优化。
+
+## 许可
+- BSD-3-Clause

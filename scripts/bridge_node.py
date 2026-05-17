@@ -43,8 +43,13 @@ class BridgeNode:
                 raise RuntimeError("uav_name not resolved")
 
         # 2) 基础映射与上下文
-        self.uav_ip = {u['name']: u['ip'] for u in self.uavs}
+        self.uav_ip = {u['name']: u.get('ip', '127.0.0.1') for u in self.uavs}
         self.topic_ports = {i: self.base_port + i for i in range(len(self.topics))}
+        
+        # 仿真支持：如果 uavs 列表中为每个 UAV 指定了 port_offset，则使用它
+        # 这允许在同一台机器 (127.0.0.1) 上通过不同端口区分不同 ROS Master 的 Bridge
+        self.uav_port_offsets = {u['name']: int(u.get('port_offset', 0)) for u in self.uavs}
+        
         self.context = zmq.Context.instance()
         self.pub_sockets = {}
         self.pub_locks = {}
@@ -70,13 +75,15 @@ class BridgeNode:
             self.window_start[i] = time.time()
             self.send_counts[i] = 0
 
-        # 4) 初始化 ZMQ PUB：本机为每个话题绑定 tcp://*:<base_port+i>
+        # 4) 初始化 ZMQ PUB：本机为每个话题绑定 tcp://*:<base_port + port_offset + i>
+        my_offset = self.uav_port_offsets.get(self.my_name, 0)
         for i, _ in enumerate(self.topics):
             s = self.context.socket(zmq.PUB)
-            s.bind("tcp://*:%d" % self.topic_ports[i])
+            bind_port = self.topic_ports[i] + my_offset
+            s.bind("tcp://*:%d" % bind_port)
             self.pub_sockets[i] = s
             self.pub_locks[i] = Lock()
-        rospy.loginfo("bridge: my_name=%s, topics=%d", self.my_name, len(self.topics))
+        rospy.loginfo("bridge: my_name=%s, port_offset=%d, topics=%d", self.my_name, my_offset, len(self.topics))
 
         # 5) 初始化 ZMQ SUB 与对应 ROS Publisher：
         # 对 topology[my_name] 列表中的每个源无人机，为每个话题建立 SUB 连接；
@@ -85,10 +92,12 @@ class BridgeNode:
         rospy.loginfo("bridge: recv sources=%s", ",".join(src_list) if src_list else "(none)")
         for src in src_list:
             ip = self.uav_ip[src]
+            src_offset = self.uav_port_offsets.get(src, 0)
             for i in range(len(self.topics)):
                 s = self.context.socket(zmq.SUB)
                 s.setsockopt(zmq.SUBSCRIBE, b"")
-                s.connect("tcp://%s:%d" % (ip, self.topic_ports[i]))
+                connect_port = self.topic_ports[i] + src_offset
+                s.connect("tcp://%s:%d" % (ip, connect_port))
                 self.sub_sockets.append(s)
                 self.poller.register(s, zmq.POLLIN)
                 self.socket_map[s] = (src, i)

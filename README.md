@@ -1,40 +1,45 @@
-swarm_topology_bridge
+# swarm_topology_bridge
 
 [English] | [中文](README_zh.md)
 
 Topology-driven ROS bridge using ZeroMQ (Python), configurable at runtime without recompilation.
 
-Introduction
+## Introduction
 - A lightweight ROS bridge that transmits specified ROS topics across robots using ZeroMQ sockets.
 - Designed for swarm scenarios where peer discovery and flexible topic selection are important.
+- Supports both **real-world** multi-UAV deployment and **single-machine multi-master** simulation.
 
-Benefits
-- Robust: No central ROS master dependency; peers can launch in any order and connect autonomously.
-- Flexible: Configure only the topics you need to send/receive instead of mirroring all topics.
-- Easy to use: Manage IPs and topics in a single YAML file.
-- Reliable/Lightweight: TCP-based ZeroMQ PUB/SUB provides robust links for wireless environments.
+## Benefits
+- **Robust**: No central ROS master dependency; peers can launch in any order and connect autonomously.
+- **Flexible**: Configure only the topics you need to send/receive instead of mirroring all topics.
+- **Easy to use**: Manage IPs, topics, and **port offsets** for simulation in a single YAML file.
+- **Namespace isolation**: Automatically adds source UAV names as namespaces (e.g., `/UAV6/pose`) to prevent topic name collisions.
 
-Structure
+## Structure
 ```bash
 └── swarm_topology_bridge
     ├── CMakeLists.txt
     ├── config
-    │   ├── topology.yaml
-    │   └── topology_sim_single.yaml
+    │   ├── topology.yaml             # Default config for real hardware
+    │   ├── topology_sim_swarm.yaml   # Config for multi-master simulation
+    │   └── topology_sim_single.yaml  # Config for single-node loopback test
     ├── launch
     │   ├── test.launch
-    │   └── latency_test_single.launch
+    │   ├── test_sim_swarm.launch     # Launch for multi-master simulation test
+    │   └── test_sim_single.launch    # Launch for single-node loopback test
     ├── package.xml
     └── scripts
-        └── bridge_node.py
+        ├── bridge_node.py            # Core bridge node
+        └── test_swarm_chatter.py     # General chatter test script
 ```
 
-Install
-- Supported: ROS1 (e.g., Kinetic/Melodic/Noetic) on Ubuntu; Python rospy/roslib runtime.
-- Steps:
+## Install
+- Supported: ROS1 (e.g., Melodic/Noetic) on Ubuntu; Python 3.
+- Dependencies: `pip3 install pyzmq`
+
 ```bash
 # create workspace
-mkdir -p ws/src && cd ws/src
+mkdir -p catkin_ws/src && cd catkin_ws/src
 # clone
 git clone https://github.com/liang-hong/swarm_topology_bridge.git
 # build
@@ -43,22 +48,37 @@ catkin build swarm_topology_bridge
 source devel/setup.bash
 ```
 
-Usage
-1. Edit config/topology.yaml (or topology_sim_single.yaml) to set IPs, ports, and topics.
-2. Launch:
+> **Note**: This package is developed using `catkin_tools`. It is highly recommended to use `catkin build` for isolated builds. However, it remains fully compatible with the traditional `catkin_make` if required by your workspace setup.
+
+## Usage
+
+### 1. Real Hardware Deployment
+Edit `config/topology.yaml` to set physical IPs and topics.
 ```bash
 roslaunch swarm_topology_bridge test.launch
-# or
-roslaunch swarm_topology_bridge latency_test_single.launch
 ```
-3. Publish to configured send topics and verify that remote receive topics get data; first messages log INFO.
 
-Relation to other projects
-- Reference: C++ project swarm_ros_bridge (upstream: https://github.com/shupx/swarm_ros_bridge).
-- This repository is an independent rewrite (not a fork). It follows similar design and interface ideas without directly copying source code. If small code fragments are referenced, the file header will include origin and copyright.
+### 2. Multi-Master Simulation (Single Machine)
+This mode simulates multiple independent onboard computers using `port_offset`.
+1. **Terminal 1 (UAV6)**:
+   ```bash
+   export ROS_MASTER_URI=http://localhost:11311
+   roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6
+   ```
+2. **Terminal 2 (UAV7)**:
+   ```bash
+   export ROS_MASTER_URI=http://localhost:11312
+   roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV7
+   ```
 
-License
-- BSD-3-Clause (see LICENSE and package.xml).
+### 3. Single Node Loopback
+```bash
+roslaunch swarm_topology_bridge test_sim_single.launch
+```
 
-Keywords
-- ros, zeromq, bridge, swarm, topology, python
+## Relation to other projects
+- Inspired by the C++ project [swarm_ros_bridge](https://github.com/shupx/swarm_ros_bridge).
+- This repository is a Python rewrite optimized for configuration flexibility and simulation support.
+
+## License
+- BSD-3-Clause

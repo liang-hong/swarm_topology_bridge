@@ -1,8 +1,8 @@
 uavs:
-  - {name: UAV6, ip: 192.168.5.61}
-  - {name: UAV7, ip: 192.168.5.71}
-  - {name: UAV8, ip: 192.168.5.81}
-  - {name: UAV9, ip: 192.168.5.91}
+  - {name: UAV6, ip: 127.0.0.1, port_offset: 0}
+  - {name: UAV7, ip: 127.0.0.1, port_offset: 100}
+  - {name: UAV8, ip: 127.0.0.1, port_offset: 200}
+  - {name: UAV9, ip: 127.0.0.1, port_offset: 300}
 
 topics:
   - {name: mavros/state,                   type: mavros_msgs/State}
@@ -11,6 +11,7 @@ topics:
   - {name: mavros/local_position/odom,     type: nav_msgs/Odometry}
   - {name: mavros/rc/in,                   type: mavros_msgs/RCIn}
   - {name: leader_fix_origin,              type: sensor_msgs/NavSatFix}
+  - {name: chatter,                        type: std_msgs/String}
 
 max_freq: 50
 base_port: 3000
