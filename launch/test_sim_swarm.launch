@@ -12,7 +12,7 @@
   </node>
 
   <!-- 2. 启动测试脚本 -->
-  <node pkg="swarm_topology_bridge" type="test_swarm_chatter.py" name="test_chatter" output="screen">
+  <!-- <node pkg="swarm_topology_bridge" type="test_swarm_chatter.py" name="test_chatter" output="screen">
     <param name="uav_name" value="$(arg uav_name)" />
-  </node>
+  </node> -->
 </launch>
