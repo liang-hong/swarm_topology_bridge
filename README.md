@@ -35,7 +35,7 @@ Topology-driven ROS bridge using ZeroMQ (Python), configurable at runtime withou
 
 ## Install
 - Supported: ROS1 (e.g., Melodic/Noetic) on Ubuntu; Python 3.
-- Dependencies: `pip3 install pyzmq`
+- Dependencies: `sudo apt install python3-zmq`
 
 ```bash
 # create workspace
