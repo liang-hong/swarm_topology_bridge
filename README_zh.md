@@ -35,7 +35,7 @@
 
 ## 安装
 - 支持环境：Ubuntu 上的 ROS1 (如 Melodic/Noetic)；Python 3。
-- 依赖项：`pip3 install pyzmq`
+- 依赖项：`sudo apt install python3-zmq`
 
 ```bash
 # 创建工作空间
