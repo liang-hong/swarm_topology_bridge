@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # 基于拓扑配置的 ROS ZeroMQ 桥接节点
-# 目标：通过单一 YAML 配置（无人机清单、话题列表、统一频率、拓扑关系）
-# 在运行时完成 ZMQ PUB/SUB 建立、ROS 话题订阅/发布的桥接，修改配置无需重新编译
+# 目标: 通过单一 YAML 配置（无人机清单、话题列表、统一频率、拓扑关系）
+# 在运行时完成 ZMQ PUB/SUB 建立、ROS 话题订阅/发布的桥接, 修改配置无需重新编译
 import rospy
 import roslib.message
 import zmq
@@ -11,7 +11,7 @@ import socket
 import io
 from threading import Lock
 
-# 工具函数：确保话题名为全局命名（以 / 开头）
+# 工具函数: 确保话题名为全局命名（以 / 开头）
 def ensure_global(name):
     return name if name.startswith('/') else '/' + name
 
@@ -27,11 +27,11 @@ class BridgeNode:
         self.base_port = int(rospy.get_param('~base_port'))
         self.topology = rospy.get_param('~topology')
 
-        # 优先使用 ~uav_name 显式指定本机 UAV 名称；否则用 hostname 推断
+        # 优先使用 ~uav_name 显式指定本机 UAV 名称; 否则用 hostname 推断
         override_name = rospy.get_param('~uav_name', None)
         self.my_name = override_name if override_name else socket.gethostname()
 
-        # 校验 my_name 是否在配置的 uavs 列表中；若不在，再尝试通过本机 IP 匹配
+        # 校验 my_name 是否在配置的 uavs 列表中; 若不在, 再尝试通过本机 IP 匹配
         name_set = set([u['name'] for u in self.uavs])
         if self.my_name not in name_set:
             my_ip = socket.gethostbyname(socket.gethostname())
@@ -39,14 +39,14 @@ class BridgeNode:
             if len(candidates) == 1:
                 self.my_name = candidates[0]
             else:
-                rospy.logerr("bridge: 无法根据 hostname/IP 解析本机 UAV 名称，请在 launch 中设置参数 ~uav_name")
+                rospy.logerr("bridge: 无法根据 hostname/IP 解析本机 UAV 名称, 请在 launch 中设置参数 ~uav_name")
                 raise RuntimeError("uav_name not resolved")
 
         # 2) 基础映射与上下文
         self.uav_ip = {u['name']: u.get('ip', '127.0.0.1') for u in self.uavs}
         self.topic_ports = {i: self.base_port + i for i in range(len(self.topics))}
         
-        # 仿真支持：如果 uavs 列表中为每个 UAV 指定了 port_offset，则使用它
+        # 仿真支持: 如果 uavs 列表中为每个 UAV 指定了 port_offset, 则使用它
         # 这允许在同一台机器 (127.0.0.1) 上通过不同端口区分不同 ROS Master 的 Bridge
         self.uav_port_offsets = {u['name']: int(u.get('port_offset', 0)) for u in self.uavs}
         
@@ -75,7 +75,7 @@ class BridgeNode:
             self.window_start[i] = time.time()
             self.send_counts[i] = 0
 
-        # 4) 初始化 ZMQ PUB：本机为每个话题绑定 tcp://*:<base_port + port_offset + i>
+        # 4) 初始化 ZMQ PUB: 本机为每个话题绑定 tcp://*:<base_port + port_offset + i>
         my_offset = self.uav_port_offsets.get(self.my_name, 0)
         for i, _ in enumerate(self.topics):
             s = self.context.socket(zmq.PUB)
@@ -85,9 +85,9 @@ class BridgeNode:
             self.pub_locks[i] = Lock()
         rospy.loginfo("bridge: my_name=%s, port_offset=%d, topics=%d", self.my_name, my_offset, len(self.topics))
 
-        # 5) 初始化 ZMQ SUB 与对应 ROS Publisher：
-        # 对 topology[my_name] 列表中的每个源无人机，为每个话题建立 SUB 连接；
-        # 接收后发布到 /源名/话题名，避免同名话题冲突
+        # 5) 初始化 ZMQ SUB 与对应 ROS Publisher: 
+        # 对 topology[my_name] 列表中的每个源无人机, 为每个话题建立 SUB 连接; 
+        # 接收后发布到 /源名/话题名, 避免同名话题冲突
         src_list = self.topology.get(self.my_name, [])
         rospy.loginfo("bridge: recv sources=%s", ",".join(src_list) if src_list else "(none)")
         for src in src_list:
@@ -106,13 +106,13 @@ class BridgeNode:
                 pub_full = "/%s%s" % (src, pub_name)
                 self.publishers[(src, i)] = rospy.Publisher(pub_full, self.msg_classes[i], queue_size=10)
 
-        # 6) 初始化 ROS 订阅：订阅本机的统一话题列表，发送到对应 ZMQ PUB
+        # 6) 初始化 ROS 订阅: 订阅本机的统一话题列表, 发送到对应 ZMQ PUB
         for i, t in enumerate(self.topics):
             sub_name = ensure_global(t['name'])
             cls = self.msg_classes[i]
             rospy.Subscriber(sub_name, cls, self._make_cb(i), queue_size=10)
 
-        # 7) 启动接收线程：轮询 ZMQ SUB，反序列化并发布到 /源名/话题名
+        # 7) 启动接收线程: 轮询 ZMQ SUB, 反序列化并发布到 /源名/话题名
         self.recv_thread = threading.Thread(target=self.recv_loop)
         self.recv_thread.daemon = True
         self.recv_thread.start()
@@ -123,7 +123,7 @@ class BridgeNode:
             now = time.time()
             elapsed = now - self.window_start[idx]
             discard = False
-            # 若窗口内实际频率将超出 max_freq，则丢弃本次消息
+            # 若窗口内实际频率将超出 max_freq, 则丢弃本次消息
             if elapsed > 0 and (self.send_counts[idx] + 1) / elapsed > self.max_freq:
                 discard = True
             if not discard:
@@ -134,14 +134,14 @@ class BridgeNode:
                 with self.pub_locks[idx]:
                     self.pub_sockets[idx].send(payload, flags=0)
                 self.send_counts[idx] += 1
-            # 滑窗重置：周期为 1s
+            # 滑窗重置: 周期为 1s
             if elapsed > 1.0:
                 self.window_start[idx] = now
                 self.send_counts[idx] = 0
         return cb
 
     def recv_loop(self):
-        # 接收循环：轮询所有 SUB 套接字，反序列化并发布到 /源名/话题名
+        # 接收循环: 轮询所有 SUB 套接字, 反序列化并发布到 /源名/话题名
         while not rospy.is_shutdown():
             events = dict(self.poller.poll(timeout=100))
             for s in events:
@@ -161,7 +161,7 @@ class BridgeNode:
                         self.recv_flags_last[key] = True
 
 def main():
-    # 节点入口：初始化 ROS 节点并启动桥接
+    # 节点入口: 初始化 ROS 节点并启动桥接
     rospy.init_node('swarm_bridge', anonymous=False)
     BridgeNode()
     rospy.spin()

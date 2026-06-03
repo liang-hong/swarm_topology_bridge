@@ -1,7 +1,7 @@
 <launch>
   <!-- 仿真多机测试启动文件 -->
-  <!-- 启动方式：export ROS_MASTER_URI=http://localhost:11311; roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6 -->
-  <!-- 然后开新终端：export ROS_MASTER_URI=http://localhost:11312; roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV7 -->
+  <!-- 启动方式: export ROS_MASTER_URI=http://localhost:11311; roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6 -->
+  <!-- 然后开新终端: export ROS_MASTER_URI=http://localhost:11312; roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV7 -->
 
   <arg name="uav_name" default="UAV6" />
 

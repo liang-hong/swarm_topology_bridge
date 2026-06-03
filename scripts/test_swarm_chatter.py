@@ -25,6 +25,7 @@ if __name__ == '__main__':
         rospy.Subscriber(topic_name, String, other_chatter_cb, neighbor)
         rospy.loginfo(f"[Test] Subscribed to {topic_name}")
 
+    # 4. 循环发布消息
     rate = rospy.Rate(1) # 1Hz
     count = 0
     while not rospy.is_shutdown():
