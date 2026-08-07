@@ -48,22 +48,37 @@ def main() -> None:
     rospy.loginfo("[ServiceProxy] call targets: %s", targets)
 
     rate = rospy.Rate(0.5)  # one call every 2s
-    while not rospy.is_shutdown():
-        for target in targets:
-            call_name = "/test_srv/{}".format(target)
-            try:
-                rospy.wait_for_service(call_name, timeout=2.0)
-                proxy = rospy.ServiceProxy(call_name, SetBool)
-                resp = proxy(_build_request(uav_name))
-                rospy.loginfo(
-                    "[ServiceProxy] CALL %s -> %s success=%s msg=%s",
-                    uav_name, call_name, resp.success, resp.message,
-                )
-            except rospy.ROSException as exc:
-                rospy.logwarn(
-                    "[ServiceProxy] %s -> %s unavailable: %s", uav_name, call_name, exc
-                )
-        rate.sleep()
+    try:
+        while not rospy.is_shutdown():
+            for target in targets:
+                call_name = "/test_srv/{}".format(target)
+                try:
+                    rospy.wait_for_service(call_name, timeout=2.0)
+                    proxy = rospy.ServiceProxy(call_name, SetBool)
+                    resp = proxy(_build_request(uav_name))
+                    rospy.loginfo(
+                        "[ServiceProxy] CALL %s -> %s success=%s msg=%s",
+                        uav_name, call_name, resp.success, resp.message,
+                    )
+                except rospy.ServiceException as exc:
+                    # E.g. target master is not running yet: warn, keep alive and
+                    # retry on the next round instead of crashing the node.
+                    rospy.logwarn(
+                        "[ServiceProxy] %s -> %s unavailable/timeout: %s",
+                        uav_name, call_name, exc,
+                    )
+                except rospy.ROSInterruptException:
+                    raise
+                except rospy.ROSException as exc:
+                    rospy.logwarn(
+                        "[ServiceProxy] %s -> %s unavailable: %s",
+                        uav_name, call_name, exc,
+                    )
+            rate.sleep()
+    except rospy.ROSInterruptException:
+        # Normal shutdown (e.g. roslaunch termination): exit cleanly, not with
+        # an error code, so roslaunch does not report the node as "died".
+        rospy.loginfo("[ServiceProxy] shutdown, exiting cleanly")
 
 
 if __name__ == "__main__":
