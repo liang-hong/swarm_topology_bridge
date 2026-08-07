@@ -25,7 +25,7 @@ def _build_request(uav_name: str) -> SetBoolRequest:
 
 def handle_test_service(req: SetBoolRequest) -> SetBoolResponse:
     rospy.loginfo(
-        "[Test] test_srv/%s received data=%s", rospy.get_name(), req.data
+        "[ServiceProxy] SERVE %s request data=%s", rospy.get_name(), req.data
     )
     resp = SetBoolResponse()
     resp.success = True
@@ -40,12 +40,12 @@ def main() -> None:
 
     service_name = "/test_srv/{}".format(uav_name)
     rospy.Service(service_name, SetBool, handle_test_service)
-    rospy.loginfo("[Test] %s: providing %s", uav_name, service_name)
+    rospy.loginfo("[ServiceProxy] provide %s", service_name)
 
     # Topology neighbour targets come from the shared config loaded by bridge.
     topology = rospy.get_param("/swarm_bridge/topology", {})
     targets = topology.get(uav_name, [])
-    rospy.loginfo("[Test] %s: service-calling targets: %s", uav_name, targets)
+    rospy.loginfo("[ServiceProxy] call targets: %s", targets)
 
     rate = rospy.Rate(0.5)  # one call every 2s
     while not rospy.is_shutdown():
@@ -56,11 +56,13 @@ def main() -> None:
                 proxy = rospy.ServiceProxy(call_name, SetBool)
                 resp = proxy(_build_request(uav_name))
                 rospy.loginfo(
-                    "[Test] %s -> %s success=%s msg=%s",
+                    "[ServiceProxy] CALL %s -> %s success=%s msg=%s",
                     uav_name, call_name, resp.success, resp.message,
                 )
             except rospy.ROSException as exc:
-                rospy.logwarn("[Test] %s -> %s unavailable: %s", uav_name, call_name, exc)
+                rospy.logwarn(
+                    "[ServiceProxy] %s -> %s unavailable: %s", uav_name, call_name, exc
+                )
         rate.sleep()
 
 

@@ -115,7 +115,7 @@ Convention (every node loads the same config and decides its role by `target`):
 
 Edit `config/topology.yaml` to set physical IPs, topics and services to proxy.
 ```bash
-roslaunch swarm_topology_bridge test.launch uav_name:=UAV6
+roslaunch swarm_topology_bridge test.launch
 ```
 Upper-layer business nodes call `/test_srv/UAVn` (or a business service name) directly on their own ROS Master; the bridge forwards across masters.
 

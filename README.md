@@ -36,7 +36,7 @@
     └── scripts
         ├── bridge_node.py            # 核心桥接节点（Topic 桥 + Service 代理）
         ├── test_chatter.py           # 连通性测试脚本
-        ├── test_swarm_chatter.py     # 多机连通性测试脚本
+        ├── test_swarm_chatter.py     # 多机连通性测试脚本（Topic 回环）
         └── test_service_node.py      # 通用 Service 代理测试脚本
 ```
 
@@ -57,50 +57,33 @@ source devel/setup.bash
 
 > **注意**：本项目推荐使用 `catkin_tools` 进行编译。使用 `catkin build` 可以实现更好的包隔离和并行编译。同时，本项目依然完全兼容传统的 `catkin_make` 编译方式，您可以根据现有工作空间的习惯进行选择。
 
-## 使用说明
+## 1. 配置说明
 
-### 1. Topic 桥
+所有配置都在一个 YAML 中：`uavs`（IP/端口偏移）、`topics`（要桥接的话题）、`services`（要代理的 Service 与目标节点）、`topology`（谁能收谁的数据）、`base_port` / `service_base_port`。Topic 与 Service 共用同一套启动入口。
 
-#### 1.1 实机部署
-修改 `config/topology.yaml` 以设置物理 IP 和需要传输的话题。
-```bash
-roslaunch swarm_topology_bridge test.launch
+### 1.1 Topic 配置
+
+```yaml
+topics:
+  - {name: mavros/state,                   type: mavros_msgs/State}
+  - {name: leader_fix_origin,              type: sensor_msgs/NavSatFix}
+  - {name: chatter,                        type: std_msgs/String}
+max_freq: 50            # 全局默认限频; 单话题可用 max_freq 覆盖, null/0 表示不限频
+base_port: 4000
 ```
 
-#### 1.2 多 Master 联合仿真 (单机模拟)
-通过 `port_offset` 模拟多台独立的机载电脑环境。
-1. **终端 1 (模拟 UAV6)**:
-   ```bash
-   export ROS_MASTER_URI=http://localhost:11311
-   roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6
-   ```
-2. **终端 2 (模拟 UAV7)**:
-   ```bash
-   export ROS_MASTER_URI=http://localhost:11312
-   roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV7
-   ```
-
-#### 1.3 单机回环测试
-```bash
-roslaunch swarm_topology_bridge test_sim_single.launch
-```
-
-#### 1.4 Topic 限频
 - 每个话题可独立配置 `max_freq`（`null`/`0` 表示不限频），任务状态/控制类话题建议不限频以免丢消息；
-- 启动窗口内的首条消息永不被限频逻辑丢弃。
+- 启动窗口内的首条消息永不被限频逻辑丢弃；
+- 接收端话题自动以来源名作为命名空间（如 `/UAV6/chatter`），避免同名冲突。
 
-### 2. 通用 Service 请求/响应代理
+### 1.2 Service 配置
 
-Service 代理使用建立在现有 ZMQ 静态拓扑之上的请求/响应通道，配置与 Topic 桥同构：在一个 YAML 中声明要代理的 Service，通过同一条 `roslaunch` 启动。
-
-#### 2.1 配置 Service
-
-在配置文件中用 `services` 列表声明 Service 名称、类型与目标节点：
+Service 代理使用建立在同一 ZMQ 静态拓扑之上的请求/响应通道，配置与 Topic 同构：
 
 ```yaml
 services:
-  - {name: /UAV1/uav_task, type: your_pkg/YourTaskSrv, target: UAV1}
-  - {name: /UAV1/uav_hold, type: your_pkg/YourHoldSrv, target: UAV1}
+  - {name: /test_srv/UAV6, type: std_srvs/SetBool, target: UAV6}
+  - {name: /test_srv/UAV7, type: std_srvs/SetBool, target: UAV7}
 service_base_port: 14000
 ```
 
@@ -111,44 +94,98 @@ service_base_port: 14000
 - 每次请求携带 bridge 层唯一 request ID，支持并发请求、超时与迟到响应丢弃；
 - bridge 只代理 ROS 序列化请求/响应，不理解任务业务，业务重试与幂等由上层负责。
 
-#### 2.2 实机部署
+## 2. 单机回环测试
 
-修改 `config/topology.yaml` 以设置物理 IP、话题与需要代理的 Service。
-```bash
-roslaunch swarm_topology_bridge test.launch uav_name:=UAV6
-```
-上层业务节点在各自 ROS Master 上直接调用 `/test_srv/UAVn`（或业务 Service 名），bridge 自动完成跨 Master 转发。
+验证单个节点上 Topic 与 Service 都能"发出 → 经 ZMQ 收回"。`test_sim_single.launch` 会同时启动 `test_swarm_chatter.py`（Topic）与 `test_service_node.py`（Service）。
 
-#### 2.3 多 Master 联合仿真 (单机模拟)
-
-通过 `port_offset` 模拟多台独立的机载电脑环境，配置见 `config/topology_sim_swarm.yaml`。
-1. **终端 1 (模拟 UAV6)**:
-   ```bash
-   export ROS_MASTER_URI=http://localhost:11311
-   roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6
-   ```
-2. **终端 2 (模拟 UAV7)**:
-   ```bash
-   export ROS_MASTER_URI=http://localhost:11312
-   roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV7
-   ```
-
-#### 2.4 单机回环测试
-
-使用 `config/topology_sim_single.yaml` 的回环拓扑，验证单个节点上 Service 的发出与收回。
 ```bash
 roslaunch swarm_topology_bridge test_sim_single.launch
 ```
 
-#### 2.5 Service 代理测试（内置用例）
+### 关键预期输出（实测）
 
-本包自带 `test_service_node.py`（使用 `std_srvs/SetBool`，不依赖业务包），随上述 launch 自动拉起：
+Topic 回环（节点日志，每 1 秒一次，`[TopicBridge]` SEND/RECV 成对出现）：
 
-- 每个节点提供 `/test_srv/{uav_name}`；
-- 周期调用拓扑邻居的 `/test_srv/{target}`（请求端注册本地代理并转发，目标端通过 ROUTER 调用本机同名 Service；回环时两者为同一节点）；
-- 观察终端日志中 `[Test] <本机> -> /test_srv/<target> success=True` 即表示跨 Master（或回环）的 Service 代理链路正常。
+```text
+[TopicBridge] SEND Hello from UAV_A! (count: 37)
+[TopicBridge] RECV UAV_A -> us: Hello from UAV_A! (count: 37)
+```
 
-具体业务配置示例见业务包（如 `tcp_to_ros/config/topology_group_a_sim.yaml`）的 Group A 联调部署。
+可另用 `rostopic echo` 确认（收到来自回环的 chatter）：
+
+```bash
+rostopic echo -n 1 /UAV_A/chatter
+# data: "Hello from UAV_A! (count: 12)"
+```
+
+Service 回环（节点日志，每 2 秒一次，`[ServiceProxy]` SERVE/CALL 成对出现）：
+
+```text
+[ServiceProxy] SERVE /test_service_node request data=True
+[ServiceProxy] CALL UAV_A -> /test_srv/UAV_A success=True msg=ok
+```
+
+可另用 `rosservice` 确认：
+
+```bash
+rosservice list | grep test_srv      # /test_srv/UAV_A
+rosservice call /test_srv/UAV_A true # success: True  message: "ok"
+```
+
+## 3. 多 Master 联合仿真（单机模拟）
+
+通过 `port_offset` 模拟多台独立的机载电脑环境，每个 ROS Master 一个终端。`test_sim_swarm.launch` 同时启动 Topic 回环（`test_swarm_chatter.py`）与 Service 代理测试（`test_service_node.py`）。
+
+```bash
+# 终端 1 (模拟 UAV6)
+export ROS_MASTER_URI=http://localhost:11311
+roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6
+# 终端 2 (模拟 UAV7)
+export ROS_MASTER_URI=http://localhost:11312
+roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV7
+```
+
+### 关键预期输出
+
+Topic：在任一终端应看到本机发出的消息被其他 Master 转发回来后打印，例如 UAV6 侧：
+
+```text
+[TopicBridge] SEND Hello from UAV6! (count: 1)
+[TopicBridge] RECV UAV7 -> us: Hello from UAV7! (count: 1)   # UAV7 Master 转发来
+```
+
+```bash
+# 在 UAV6 Master 侧确认收到 UAV7 的消息
+rostopic echo -n 1 /UAV7/chatter
+# data: "Hello from UAV7! (count: 1)"
+```
+
+Service：任一终端应看到对拓扑邻居的跨 Master 调用成功：
+
+```text
+[ServiceProxy] CALL UAV6 -> /test_srv/UAV7 success=True msg=ok
+[ServiceProxy] SERVE /test_service_node request data=True   # 收到的正是 UAV7 转来的请求
+```
+
+```bash
+# 在 UAV6 Master 侧查看代理注册
+rosservice list | grep test_srv   # 含 /test_srv/UAV6(本机) 与 /test_srv/UAV7(代理)
+# 跨 Master 调用
+rosservice call /test_srv/UAV7 true
+# success: True  message: "ok"
+```
+
+## 4. 实机部署
+
+修改 `config/topology.yaml` 以设置物理 IP、话题与需要代理的 Service；每台机载电脑分别执行（用 hostname 推断或 `uav_name` 显式指定本机身份）：
+
+```bash
+roslaunch swarm_topology_bridge test.launch uav_name:=UAV6
+```
+
+- 实机各节点 `port_offset` 全部为 0（同端口、不同物理 IP）；
+- 上层业务节点在各自 ROS Master 上直接调用 `/test_srv/UAVn`（或业务 Service 名），bridge 自动完成跨 Master 转发；
+- 业务 Topic 与 Service 的判读方式与第 2、3 节相同（`[TopicBridge]`/`[ServiceProxy]` 日志、`rostopic`/`rosservice` 辅助确认）。
 
 ## 项目渊源
 - 受 C++ 项目 [swarm_ros_bridge](https://github.com/shupx/swarm_ros_bridge) 启发。
