@@ -5,7 +5,7 @@ topics:
   - {name: chatter, type: std_msgs/String}
 
 max_freq: 1000
-base_port: 4100
+base_port: 4200
 
 topology:
   # 单机回环: 自身接收自身发送的数据
