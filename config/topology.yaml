@@ -14,7 +14,7 @@ topics:
   - {name: leader_fix_origin,              type: sensor_msgs/NavSatFix}
 
 max_freq: 50
-base_port: 4000
+base_port: 4200
 
 # 通用 Service 代理测试 (std_srvs 内置类型, 不依赖业务包)
 services:
