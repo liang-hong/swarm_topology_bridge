@@ -2,7 +2,7 @@
 
 [English] | [中文](README.md)
 
-A topology-driven ROS bridge using ZeroMQ (Python), configurable at runtime without recompilation. Deployed as a generic communication component on the GCS ground station and onboard computers; it does not depend on any business package.
+A topology-driven ROS bridge using ZeroMQ (Python), configurable at runtime without recompilation. Deployed as a generic communication component on all ROS nodes for multi-ROS interaction.
 
 ## Introduction
 - A lightweight ROS bridge node that forwards selected ROS topics between robots over ZeroMQ sockets.
@@ -15,7 +15,7 @@ A topology-driven ROS bridge using ZeroMQ (Python), configurable at runtime with
 - **Configurable**: Define exactly which topics and services to send/receive instead of mirroring everything.
 - **Easy to use**: Manage IPs, topics, services, and simulation **port offsets** in a single YAML file.
 - **Namespace isolation**: Adds the source UAV name as a namespace (e.g., `/UAV6/pose`) to avoid topic name collisions.
-- **Generic**: This package does not understand task business; it only bridges ROS natively serialized topics/services. Retries and idempotency are left to the upper business layer.
+- **Generic**: This package does not take part in task business; it only bridges ROS natively serialized topics/services. Retries and idempotency are left to the upper business layer.
 
 ## Structure
 ```bash
@@ -29,7 +29,7 @@ A topology-driven ROS bridge using ZeroMQ (Python), configurable at runtime with
     │   ├── topology_sim_swarm.yaml   # Config for multi-master simulation
     │   └── topology_sim_single.yaml  # Config for single-node loopback test
     ├── launch
-    │   ├── test.launch
+    │   ├── test.launch               # Example launch for real-world application
     │   ├── test_sim_swarm.launch     # Launch for multi-master simulation test
     │   └── test_sim_single.launch    # Launch for single-node loopback test
     ├── package.xml
@@ -113,7 +113,3 @@ See the business package config (e.g., `tcp_to_ros/config/topology_group_a_sim.y
 
 ## License
 - BSD-3-Clause
-
-## Related Docs
-- Generic bridge plan and Group A usage: `tcp_to_ros` ground-station package docs (`docs/tcp_to_ros_后续开发计划.md`) and `docs/tcp_to_ros_测试记录.md`
-- Onboard application example (depends on this package): `safe_valley_exp`

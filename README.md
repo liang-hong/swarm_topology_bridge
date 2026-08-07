@@ -2,7 +2,7 @@
 
 [English](README-en.md) | [中文]
 
-基于 ZeroMQ (Python) 的拓扑驱动型 ROS 桥接工具，运行时配置，无需重新编译。作为通用通信组件部署在 GCS 地面站与各无人机机载电脑上，不依赖任何业务功能包。
+基于 ZeroMQ (Python) 的拓扑驱动型 ROS 桥接工具，运行时配置，无需重新编译。作为多 ROS 交互的通用通信组件部署在所有 ROS 节点上。
 
 ## 简介
 - 一款轻量级的 ROS 桥接节点，利用 ZeroMQ 套接字在不同机器人之间传输指定的 ROS 话题。
@@ -15,7 +15,7 @@
 - **配置灵活**：在 YAML 中精确定义发送/接收的话题与要代理的 Service，避免冗余数据传输。
 - **易于使用**：在一个配置文件中管理所有 IP、话题、Service 以及用于仿真的**端口偏移 (Port Offset)**。
 - **命名空间隔离**：自动为接收到的远程话题添加来源无人机前缀（如 `/UAV6/pose`），有效防止集群中同名话题冲突。
-- **通用性**：本包不理解任务业务，只做 ROS 原生序列化的 Topic 桥与 Service 代理；业务重试与幂等由上层业务包负责。
+- **通用性**：本包不参与任务业务，只做 ROS 原生序列化的 Topic 桥与 Service 代理；业务重试与幂等由上层业务包负责。
 
 ## 文件结构
 ```bash
@@ -29,7 +29,7 @@
     │   ├── topology_sim_swarm.yaml   # 多 Master 联合仿真配置
     │   └── topology_sim_single.yaml  # 单机回环测试配置
     ├── launch
-    │   ├── test.launch
+    │   ├── test.launch               # 实机应用示例启动文件
     │   ├── test_sim_swarm.launch     # 仿真多机集成测试启动文件
     │   └── test_sim_single.launch    # 仿真单机回环测试启动文件
     ├── package.xml
@@ -113,7 +113,3 @@ services:
 
 ## 许可
 - BSD-3-Clause
-
-## 相关文档
-- 通用桥接方案与 Group A 应用：`tcp_to_ros` 地面站主包文档（`docs/tcp_to_ros_后续开发计划.md`）与 `docs/tcp_to_ros_测试记录.md`
-- 机载应用示例（依赖本包）：`safe_valley_exp`
