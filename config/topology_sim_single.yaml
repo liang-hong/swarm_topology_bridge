@@ -7,6 +7,12 @@ topics:
 max_freq: 1000
 base_port: 4100
 
+# 通用 Service 代理测试 (std_srvs 内置类型, 不依赖业务包)
+services:
+  - {name: /test_srv/UAV_A, type: std_srvs/SetBool, target: UAV_A}
+
+service_base_port: 14100
+
 topology:
   # 单机回环: 自身接收自身发送的数据
   UAV_A: [UAV_A]

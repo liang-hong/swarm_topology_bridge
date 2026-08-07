@@ -36,7 +36,8 @@ A topology-driven ROS bridge using ZeroMQ (Python), configurable at runtime with
     └── scripts
         ├── bridge_node.py            # Core bridge node (Topic bridge + Service proxy)
         ├── test_chatter.py           # Connectivity test script
-        └── test_swarm_chatter.py     # Multi-robot connectivity test script
+        ├── test_swarm_chatter.py     # Multi-robot connectivity test script
+        └── test_service_node.py      # Generic Service proxy test script
 ```
 
 ## Install
@@ -106,6 +107,22 @@ Convention (every node loads the same config and decides its role by `target`):
 - The bridge only proxies ROS serialized requests/responses and does not understand task business.
 
 See the business package config (e.g., `tcp_to_ros/config/topology_group_a_sim.yaml`) for a Group A integration example.
+
+### 3. Service Proxy Test (Built-in)
+
+The package ships `test_service_node.py` (uses `std_srvs/SetBool`, no business package dependency):
+
+- Each node provides `/test_srv/{uav_name}`;
+- Periodically calls `/test_srv/{target}` of its topology neighbours (note: the target side registers the local service via ROUTER, the caller side registers a local proxy and forwards; loopback uses the same node for both roles);
+- All three launch files (real `test.launch`, sim swarm `test_sim_swarm.launch`, loopback `test_sim_single.launch`) start this test node by default, and their paired configs already declare the matching `services`;
+- `[Test] <local> -> /test_srv/<target> success=True` in the terminal log means the cross-master (or loopback) Service proxy link is healthy.
+
+```bash
+# Sim multi-robot example: run per ROS Master
+roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6
+# Real robot example: run on each onboard computer (hostname inferred, or pass uav_name)
+roslaunch swarm_topology_bridge test.launch uav_name:=UAV6
+```
 
 ## Relation to other projects
 - Inspired by the C++ project [swarm_ros_bridge](https://github.com/shupx/swarm_ros_bridge).

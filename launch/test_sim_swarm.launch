@@ -15,4 +15,9 @@
   <!-- <node pkg="swarm_topology_bridge" type="test_swarm_chatter.py" name="test_chatter" output="screen">
     <param name="uav_name" value="$(arg uav_name)" />
   </node> -->
+
+  <!-- 3. 通用 Service 代理测试 (跨 Master 调用拓扑邻居的 /test_srv/{target}) -->
+  <node pkg="swarm_topology_bridge" type="test_service_node.py" name="test_service_node" output="screen">
+    <param name="uav_name" value="$(arg uav_name)" />
+  </node>
 </launch>

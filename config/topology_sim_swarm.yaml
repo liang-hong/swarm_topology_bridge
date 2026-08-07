@@ -16,6 +16,18 @@ topics:
 max_freq: 50
 base_port: 4000
 
+# 通用 Service 代理测试 (std_srvs 内置类型, 不依赖业务包)
+# target 提供该 Service; 每个节点按 target 判断角色:
+#   - target == 本机: 绑定 ROUTER, 调用本机同名 ROS Service
+#   - target != 本机: 注册本地 ROS Service 代理, 转发到 target
+services:
+  - {name: /test_srv/UAV6, type: std_srvs/SetBool, target: UAV6}
+  - {name: /test_srv/UAV7, type: std_srvs/SetBool, target: UAV7}
+  - {name: /test_srv/UAV8, type: std_srvs/SetBool, target: UAV8}
+  - {name: /test_srv/UAV9, type: std_srvs/SetBool, target: UAV9}
+
+service_base_port: 14000
+
 topology:
   UAV6: [UAV7, UAV8, UAV9]
   UAV7: [UAV6, UAV8, UAV9]

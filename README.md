@@ -36,7 +36,8 @@
     └── scripts
         ├── bridge_node.py            # 核心桥接节点（Topic 桥 + Service 代理）
         ├── test_chatter.py           # 连通性测试脚本
-        └── test_swarm_chatter.py     # 多机连通性测试脚本
+        ├── test_swarm_chatter.py     # 多机连通性测试脚本
+        └── test_service_node.py      # 通用 Service 代理测试脚本
 ```
 
 ## 安装
@@ -106,6 +107,22 @@ services:
 - bridge 只代理 ROS 序列化请求/响应，不理解任务业务。
 
 具体配置示例见业务包（如 `tcp_to_ros/config/topology_group_a_sim.yaml`）的 Group A 联调部署。
+
+### 3. Service 代理测试（内置用例）
+
+本包自带 `test_service_node.py` 通用测试节点（使用 `std_srvs/SetBool`，不依赖业务包）：
+
+- 每个节点提供 `/test_srv/{uav_name}`；
+- 周期调用拓扑邻居的 `/test_srv/{target}`（说明：服务端目标侧节点应只注册本机服务的 ROUTER，请求端注册本地代理并转发；回环时两者为同一节点）；
+- 现有三个 launch（实机 `test.launch`、仿真多机 `test_sim_swarm.launch`、回环 `test_sim_single.launch`）已默认拉起该测试节点，配对的 config 中已包含对应 `services` 声明；
+- 观察终端日志中 `[Test] <本机> -> /test_srv/<target> success=True` 即表示跨 Master（或回环）的 Service 代理链路正常。
+
+```bash
+# 仿真多机示例：每个 ROS Master 分别执行
+roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6
+# 实机示例：每台机载电脑执行（hostname 推断，或用 uav_name 显式指定）
+roslaunch swarm_topology_bridge test.launch uav_name:=UAV6
+```
 
 ## 项目渊源
 - 受 C++ 项目 [swarm_ros_bridge](https://github.com/shupx/swarm_ros_bridge) 启发。
