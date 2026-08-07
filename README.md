@@ -91,12 +91,17 @@ roslaunch swarm_topology_bridge test_sim_single.launch
 
 ### 2. 通用 Service 请求/响应代理
 
-在 `~services` 配置中声明 Service 名称、类型与目标节点，示例：
+Service 代理使用建立在现有 ZMQ 静态拓扑之上的请求/响应通道，配置与 Topic 桥同构：在一个 YAML 中声明要代理的 Service，通过同一条 `roslaunch` 启动。
+
+#### 2.1 配置 Service
+
+在配置文件中用 `services` 列表声明 Service 名称、类型与目标节点：
 
 ```yaml
 services:
   - {name: /UAV1/uav_task, type: your_pkg/YourTaskSrv, target: UAV1}
   - {name: /UAV1/uav_hold, type: your_pkg/YourHoldSrv, target: UAV1}
+service_base_port: 14000
 ```
 
 约定（每个节点加载同一份配置，按 `target` 判断角色）：
@@ -104,25 +109,46 @@ services:
 - 本机是 `target` 时：绑定 ZMQ ROUTER 端口，收到跨机请求后调用本机同名 ROS Service 并返回序列化响应；
 - 本机不是 `target` 时：在本机 ROS Master 注册同名 Service 代理，收到上层调用后经 ZMQ 转发到目标节点；
 - 每次请求携带 bridge 层唯一 request ID，支持并发请求、超时与迟到响应丢弃；
-- bridge 只代理 ROS 序列化请求/响应，不理解任务业务。
+- bridge 只代理 ROS 序列化请求/响应，不理解任务业务，业务重试与幂等由上层负责。
 
-具体配置示例见业务包（如 `tcp_to_ros/config/topology_group_a_sim.yaml`）的 Group A 联调部署。
+#### 2.2 实机部署
 
-### 3. Service 代理测试（内置用例）
-
-本包自带 `test_service_node.py` 通用测试节点（使用 `std_srvs/SetBool`，不依赖业务包）：
-
-- 每个节点提供 `/test_srv/{uav_name}`；
-- 周期调用拓扑邻居的 `/test_srv/{target}`（说明：服务端目标侧节点应只注册本机服务的 ROUTER，请求端注册本地代理并转发；回环时两者为同一节点）；
-- 现有三个 launch（实机 `test.launch`、仿真多机 `test_sim_swarm.launch`、回环 `test_sim_single.launch`）已默认拉起该测试节点，配对的 config 中已包含对应 `services` 声明；
-- 观察终端日志中 `[Test] <本机> -> /test_srv/<target> success=True` 即表示跨 Master（或回环）的 Service 代理链路正常。
-
+修改 `config/topology.yaml` 以设置物理 IP、话题与需要代理的 Service。
 ```bash
-# 仿真多机示例：每个 ROS Master 分别执行
-roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6
-# 实机示例：每台机载电脑执行（hostname 推断，或用 uav_name 显式指定）
 roslaunch swarm_topology_bridge test.launch uav_name:=UAV6
 ```
+上层业务节点在各自 ROS Master 上直接调用 `/test_srv/UAVn`（或业务 Service 名），bridge 自动完成跨 Master 转发。
+
+#### 2.3 多 Master 联合仿真 (单机模拟)
+
+通过 `port_offset` 模拟多台独立的机载电脑环境，配置见 `config/topology_sim_swarm.yaml`。
+1. **终端 1 (模拟 UAV6)**:
+   ```bash
+   export ROS_MASTER_URI=http://localhost:11311
+   roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6
+   ```
+2. **终端 2 (模拟 UAV7)**:
+   ```bash
+   export ROS_MASTER_URI=http://localhost:11312
+   roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV7
+   ```
+
+#### 2.4 单机回环测试
+
+使用 `config/topology_sim_single.yaml` 的回环拓扑，验证单个节点上 Service 的发出与收回。
+```bash
+roslaunch swarm_topology_bridge test_sim_single.launch
+```
+
+#### 2.5 Service 代理测试（内置用例）
+
+本包自带 `test_service_node.py`（使用 `std_srvs/SetBool`，不依赖业务包），随上述 launch 自动拉起：
+
+- 每个节点提供 `/test_srv/{uav_name}`；
+- 周期调用拓扑邻居的 `/test_srv/{target}`（请求端注册本地代理并转发，目标端通过 ROUTER 调用本机同名 Service；回环时两者为同一节点）；
+- 观察终端日志中 `[Test] <本机> -> /test_srv/<target> success=True` 即表示跨 Master（或回环）的 Service 代理链路正常。
+
+具体业务配置示例见业务包（如 `tcp_to_ros/config/topology_group_a_sim.yaml`）的 Group A 联调部署。
 
 ## 项目渊源
 - 受 C++ 项目 [swarm_ros_bridge](https://github.com/shupx/swarm_ros_bridge) 启发。

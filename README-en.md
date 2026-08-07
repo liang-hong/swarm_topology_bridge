@@ -91,12 +91,17 @@ roslaunch swarm_topology_bridge test_sim_single.launch
 
 ### 2. Generic Service Request/Response Proxy
 
-Declare service name, type and target node in the `~services` config, e.g.:
+The Service proxy uses a request/response channel built on the existing ZMQ static topology. Its config is isomorphic to the Topic bridge: declare the services to proxy in one YAML and launch with the same `roslaunch`.
+
+#### 2.1 Configure Services
+
+Declare service name, type and target node with the `services` list:
 
 ```yaml
 services:
   - {name: /UAV1/uav_task, type: your_pkg/YourTaskSrv, target: UAV1}
   - {name: /UAV1/uav_hold, type: your_pkg/YourHoldSrv, target: UAV1}
+service_base_port: 14000
 ```
 
 Convention (every node loads the same config and decides its role by `target`):
@@ -104,25 +109,46 @@ Convention (every node loads the same config and decides its role by `target`):
 - If this node is the `target`: it binds a ZMQ ROUTER port, invokes the local ROS Service with the same name, and returns the serialized response.
 - Otherwise: it registers a same-named ROS Service proxy on the local master and forwards calls over ZMQ to the target node.
 - Every request carries a bridge-level unique request ID; concurrent requests, timeouts and late replies are supported/dropped.
-- The bridge only proxies ROS serialized requests/responses and does not understand task business.
+- The bridge only proxies ROS serialized requests/responses and does not understand task business; retries and idempotency are left to the upper layer.
 
-See the business package config (e.g., `tcp_to_ros/config/topology_group_a_sim.yaml`) for a Group A integration example.
+#### 2.2 Real Hardware Deployment
 
-### 3. Service Proxy Test (Built-in)
-
-The package ships `test_service_node.py` (uses `std_srvs/SetBool`, no business package dependency):
-
-- Each node provides `/test_srv/{uav_name}`;
-- Periodically calls `/test_srv/{target}` of its topology neighbours (note: the target side registers the local service via ROUTER, the caller side registers a local proxy and forwards; loopback uses the same node for both roles);
-- All three launch files (real `test.launch`, sim swarm `test_sim_swarm.launch`, loopback `test_sim_single.launch`) start this test node by default, and their paired configs already declare the matching `services`;
-- `[Test] <local> -> /test_srv/<target> success=True` in the terminal log means the cross-master (or loopback) Service proxy link is healthy.
-
+Edit `config/topology.yaml` to set physical IPs, topics and services to proxy.
 ```bash
-# Sim multi-robot example: run per ROS Master
-roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6
-# Real robot example: run on each onboard computer (hostname inferred, or pass uav_name)
 roslaunch swarm_topology_bridge test.launch uav_name:=UAV6
 ```
+Upper-layer business nodes call `/test_srv/UAVn` (or a business service name) directly on their own ROS Master; the bridge forwards across masters.
+
+#### 2.3 Multi-Master Simulation (Single Machine)
+
+This mode simulates multiple independent onboard computers using `port_offset`, config in `config/topology_sim_swarm.yaml`.
+1. **Terminal 1 (UAV6)**:
+   ```bash
+   export ROS_MASTER_URI=http://localhost:11311
+   roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV6
+   ```
+2. **Terminal 2 (UAV7)**:
+   ```bash
+   export ROS_MASTER_URI=http://localhost:11312
+   roslaunch swarm_topology_bridge test_sim_swarm.launch uav_name:=UAV7
+   ```
+
+#### 2.4 Single Node Loopback
+
+Use the loopback topology in `config/topology_sim_single.yaml` to verify a Service's send/receive round-trip on a single node.
+```bash
+roslaunch swarm_topology_bridge test_sim_single.launch
+```
+
+#### 2.5 Service Proxy Test (Built-in)
+
+The package ships `test_service_node.py` (uses `std_srvs/SetBool`, no business package dependency), started automatically by the launch files above:
+
+- Each node provides `/test_srv/{uav_name}`;
+- Periodically calls `/test_srv/{target}` of its topology neighbours (the caller side registers a local proxy and forwards; the target side invokes the local service via ROUTER; loopback uses the same node for both roles);
+- `[Test] <local> -> /test_srv/<target> success=True` in the terminal log means the cross-master (or loopback) Service proxy link is healthy.
+
+See the business package config (e.g., `tcp_to_ros/config/topology_group_a_sim.yaml`) for a Group A integration example.
 
 ## Relation to other projects
 - Inspired by the C++ project [swarm_ros_bridge](https://github.com/shupx/swarm_ros_bridge).
