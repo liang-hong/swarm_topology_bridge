@@ -57,6 +57,18 @@ source devel/setup.bash
 
 > **Note**: This package is developed using `catkin_tools`. `catkin build` is recommended for isolated builds, but it remains fully compatible with the traditional `catkin_make`.
 
+## Environment Variables (ROS Log Redirection)
+
+To avoid ROS runtime logs scattered under `~/.ros/log`, this workspace redirects all runtime logs to `.ros_home/`:
+
+```bash
+export ROS_HOME=/home/ub20tg/catkin_swarm6-2/.ros_home
+export ROS_LOG_DIR=/home/ub20tg/catkin_swarm6-2/.ros_home/log
+mkdir -p "$ROS_LOG_DIR"
+```
+
+Run the commands above in each terminal before manual launch to ensure all ROS runtime logs from this workspace are written into `.ros_home/log`.
+
 ## Usage
 
 ### 1. Topic Bridge

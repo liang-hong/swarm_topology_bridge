@@ -57,6 +57,18 @@ source devel/setup.bash
 
 > **注意**：本项目推荐使用 `catkin_tools` 进行编译。使用 `catkin build` 可以实现更好的包隔离和并行编译。同时，本项目依然完全兼容传统的 `catkin_make` 编译方式，您可以根据现有工作空间的习惯进行选择。
 
+## 环境变量（ROS 日志重定向）
+
+为避免 ROS 运行日志散落在 `~/.ros/log`，本工作空间统一将运行日志重定向到 `.ros_home/`：
+
+```bash
+export ROS_HOME=/home/ub20tg/catkin_swarm6-2/.ros_home
+export ROS_LOG_DIR=/home/ub20tg/catkin_swarm6-2/.ros_home/log
+mkdir -p "$ROS_LOG_DIR"
+```
+
+手动启动前请先在终端执行以上命令，确保当前工作空间所有 ROS 运行日志均写入 `.ros_home/log`。
+
 ## 1. 配置说明
 
 所有配置都在一个 YAML 中：`uavs`（IP/端口偏移）、`topics`（要桥接的话题）、`services`（要代理的 Service 与目标节点）、`topology`（谁能收谁的数据）、`base_port` / `service_base_port`。Topic 与 Service 共用同一套启动入口。
