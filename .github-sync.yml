@@ -11,5 +11,6 @@
 # 多分支仓库：仅当全部分支都有本文件且内容一致（忽略注释）时才执行策略；
 # 任一分支缺失或不一致 → 按 disable 处理（不报错）。请同步所有分支。
 github:
-  state: enable    # 本仓库启用同步
-  private: true    # GitHub 云端仓库私有
+  state: enable              # 本仓库启用同步
+  private: false             # GitHub 云端仓库公开
+  default_branch: services   # 仓库默认分支（不设置时脚本回退 main/master，故显式指定）
