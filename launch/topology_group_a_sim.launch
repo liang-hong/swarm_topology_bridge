@@ -1,0 +1,13 @@
+<launch>
+  <!-- Group A 多 Master 仿真拓扑 launch（implementation_plan_26082916 §7：
+       swarm_topology_bridge 是完整 topology 唯一 owner；tcp_to_ros 不再保存
+       重复内容，其 launch/topology_group_a_sim.launch 以本 wrapper 为桥接基础）。
+       每个 ROS Master 启动一次，通过 uav_name 区分角色（UAV1..UAV15 / GCS_A）。 -->
+  <arg name="uav_name" default="UAV1" />
+  <arg name="config" default="$(find swarm_topology_bridge)/config/topology_group_a_sim.yaml" />
+
+  <node pkg="swarm_topology_bridge" type="bridge_node.py" name="swarm_bridge" output="screen">
+    <rosparam file="$(arg config)" command="load" />
+    <param name="uav_name" value="$(arg uav_name)" />
+  </node>
+</launch>
