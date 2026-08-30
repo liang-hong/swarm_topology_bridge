@@ -1,7 +1,5 @@
 # swarm_topology_bridge
 
-[English](README-en.md) | [中文]
-
 基于 ZeroMQ (Python) 的拓扑驱动型 ROS 桥接工具，运行时配置，无需重新编译。作为多 ROS 交互的通用通信组件部署在所有 ROS 节点上。
 
 ## 简介
@@ -22,16 +20,17 @@
 └── swarm_topology_bridge
     ├── CMakeLists.txt
     ├── LICENSE
-    ├── README.md                 # 中文主 README
-    ├── README-en.md              # 英文 README
+    ├── README.md                 # 中文主 README（唯一维护文档）
     ├── config
     │   ├── topology.yaml             # 实机部署默认配置
+    │   ├── topology_group_a_sim.yaml # Group A 多 Master 仿真拓扑（GCS_A + UAV1..UAV15，唯一 owner）
     │   ├── topology_sim_swarm.yaml   # 多 Master 联合仿真配置
     │   └── topology_sim_single.yaml  # 单机回环测试配置
     ├── launch
     │   ├── test.launch               # 实机应用示例启动文件
     │   ├── test_sim_swarm.launch     # 仿真多机集成测试启动文件
-    │   └── test_sim_single.launch    # 仿真单机回环测试启动文件
+    │   ├── test_sim_single.launch    # 仿真单机回环测试启动文件
+    │   └── topology_group_a_sim.launch # Group A 仿真拓扑 launch（bridge 入口）
     ├── package.xml
     └── scripts
         ├── bridge_node.py            # 核心桥接节点（Topic 桥 + Service 代理）
@@ -105,6 +104,36 @@ service_base_port: 14000
 - 本机不是 `target` 时：在本机 ROS Master 注册同名 Service 代理，收到上层调用后经 ZMQ 转发到目标节点；
 - 每次请求携带 bridge 层唯一 request ID，支持并发请求、超时与迟到响应丢弃；
 - bridge 只代理 ROS 序列化请求/响应，不理解任务业务，业务重试与幂等由上层负责。
+
+## 1.3 Group A 多 Master 仿真拓扑（owner = 本包）
+
+Group A（GCS_A + UAV1..UAV15）的多 Master 仿真拓扑配置**唯一**保存在
+`config/topology_group_a_sim.yaml`，由本包的 `bridge_node` 加载（
+implementation_plan_26082916 §7 将 owner 从 `tcp_to_ros` 迁移到本包）；
+`tcp_to_ros` 只保留一个兼容 wrapper launch，不再保存重复拓扑内容。
+
+每个 ROS Master 启动一次 bridge，通过 `uav_name` 区分角色：
+
+```bash
+# GCS_A 侧（地面站 Master 11310）
+export ROS_MASTER_URI=http://localhost:11310
+roslaunch swarm_topology_bridge topology_group_a_sim.launch uav_name:=GCS_A
+
+# 机载 UAVn 侧（各自 Master 11311..11325）
+export ROS_MASTER_URI=http://localhost:11311
+roslaunch swarm_topology_bridge topology_group_a_sim.launch uav_name:=UAV1
+```
+
+- `uav_name`：本机角色名（`UAV1..UAV15` / `GCS_A`），bridge 按它匹配
+  `uavs[].name` 决定本机 ZMQ 绑定端口与转发前缀；
+- `config`：可选覆盖 topology 文件路径，默认
+  `$(find swarm_topology_bridge)/config/topology_group_a_sim.yaml`；
+- 配置加载：launch 内 `<rosparam file="$(arg config)" command="load"/>`
+  将整份 YAML 加载为 `bridge_node` 私有参数，消息类型运行时由
+  `roslib.message.get_message_class` 动态解析（如
+  `geographic_msgs/GeoPointStamped`，依赖已在 package.xml/CMakeLists 声明）；
+- 业务侧机载入口 `swarm_uav_executor/launch/uav_offboard_ego.launch` 与地面站
+  兼容入口 `tcp_to_ros/launch/topology_group_a_sim.launch` 均 include 本 launch。
 
 ## 2. 单机回环测试
 
