@@ -60,8 +60,8 @@ from bundle import BundleBuilder, TopicBuffer, decode_frames, decode_frame, Bund
 from udp_bundle import UdpBundleSocket, BundleReassembler, build_udp_peer_maps  # noqa: E402
 
 DEFAULT_HEALTH_KEY_TOPICS = (
-    "swarm_pose",
-    "mavros/local_position/pose",
+    "local_pose",
+    "local_velocity",
     "mavros/state",
     "trajectory_intent",
     "uav_task_state",
@@ -69,11 +69,11 @@ DEFAULT_HEALTH_KEY_TOPICS = (
 # 看门狗默认只盯"高频周期性"话题：trajectory_intent / uav_task_state / gp_origin_confirmed 是
 # 事件驱动或一次性（首帧之后长期静默属正常），把它们纳入会持续产生假停顿事件。
 DEFAULT_STALL_TOPICS = (
-    "swarm_pose",
-    "mavros/local_position/pose",
+    "local_pose",
+    "local_velocity",
 )
-# 连接级事件默认只监控 swarm_pose（机间位姿关键链路）；对每个被监控话题每源一个 monitor socket。
-DEFAULT_MONITOR_TOPICS = ("swarm_pose",)
+# 连接级事件默认只监控位姿流（机间跟随关键链路）；对每个被监控话题每源一个 monitor socket。
+DEFAULT_MONITOR_TOPICS = ("local_pose",)
 
 
 def ensure_global(name):

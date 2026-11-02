@@ -119,8 +119,13 @@ bundle_tick_hz: 10.0     # 合包周期（Hz）；某话题实际发送率 = min
 bundle_max_bytes: 1400   # 单帧上限；超出按 entry 边界切帧（单条超大消息独占一帧）
 bundle_queue_max: 100    # queue 模式每话题缓冲上限（溢出丢最旧）
 topics:
-  - {name: swarm_pose, type: geometry_msgs/PointStamped, max_freq: 10, mode: latest}
+  - {name: local_pose,     type: geometry_msgs/PoseStamped, max_freq: 10, mode: latest}
+  - {name: local_velocity, type: geometry_msgs/TwistStamped, max_freq: 10, mode: latest}
 ```
+
+> `local_pose` / `local_velocity` 由机载 `pose_relay` 从**同一帧** `mavros/local_position/odom`
+> 拆出，`header`（stamp/frame_id）逐位相同；桥不再转发 odom，也不再额外转发
+> `mavros/local_position/pose`，避免同源位置重复广播。
 
 - 每话题可加 `mode`：`latest`=每 tick 只发最新值（周期话题，可丢中间值）；`queue`=窗口内全量保留（事件/安全类）。
   未写时默认：`max_freq` 为 0/null → `queue`，否则 `latest`。
@@ -325,7 +330,7 @@ ZMQ 链路也没有任何心跳，IP 层半开即"永久静默、不重连"。�
 | `health_start` | 启动摘要：文件路径、采样率、KEY/停顿/监控话题、实际生效的链路选项 |
 | `sample` | 逐 KEY 话题：收发计数、限频丢弃数、`age_ms`、`max gap`、`>0.2/0.5/1.0/3.0 s` 间隔计数；接收侧再给"最旧源 `age_max_src`"与"陈旧源列表 `stale_srcs`"；另带 `load1`、进程 CPU 秒、`write_errors`、`stuck_sockets`（**套接字里有数据但没被取走** = 收包线程被饿死/卡住） |
 | `matrix`（默认 10 s） | 逐 (源, 话题) 明细，定位到具体哪条链 |
-| `stall_start` / `stall_end` | 停顿事件（含静默时长/持续时长），只对周期性话题（默认 swarm_pose/pose）判 |
+| `stall_start` / `stall_end` | 停顿事件（含静默时长/持续时长），只对周期性话题（默认 local_pose/local_velocity）判 |
 | `link` | **连接级**事件——区分"数据没到"与"链路断了"的唯一直接信号。**从未连上的端点只计数不刷日志**（汇总行给 `links_seen`/`links_unconnected`/`link_retries_suppressed`），连上之后的断开/重连才逐条记录 |
 | `error` | 收包/反序列化/发布异常与 traceback（旧实现下这类异常会**静默杀死整个接收线程**） |
 
@@ -335,10 +340,10 @@ ZMQ 链路也没有任何心跳，IP 层半开即"永久静默、不重连"。�
 |---|---|---|
 | `~health_log_dir` | `$HOME/catkin_swarm6-2/.ros_home/log/health` | 空串/none/off = 关闭观测 |
 | `~health_sample_hz` / `~health_matrix_period_s` | `0.5` / `60.0` | 矩阵是汇总行的 10 倍体积；停顿发生时会额外补一份 `trigger="stall"` 的明细 |
-| `~health_key_topics` | swarm_pose/pose/state/intent/task_state | 逐话题汇总与矩阵覆盖范围 |
-| `~stall_topics` | swarm_pose/pose | 只有高频周期性话题才判停顿（`trajectory_intent`/`uav_task_state` 事件驱动，天生静默） |
-| `~stall_warn_s` | `1.5` | 停顿告警阈值（跟随环自身判据是 1.0 s） |
-| `~monitor_topics` | swarm_pose | 开 ZMQ socket monitor 的话题（每源一个 monitor socket） |
+| `~health_key_topics` | local_pose/local_velocity/state/intent/task_state | 逐话题汇总与矩阵覆盖范围 |
+| `~stall_topics` | local_pose/local_velocity | 只有高频周期性话题才判停顿（`trajectory_intent`/`uav_task_state` 事件驱动，天生静默） |
+| `~stall_warn_s` | `1.5` | 停顿告警阈值（跟随环自身判据是 3.0 s） |
+| `~monitor_topics` | local_pose | 开 ZMQ socket monitor 的话题（每源一个 monitor socket） |
 
 ### 5.2 链路加固（默认开）
 
@@ -357,7 +362,7 @@ ZMQ 链路也没有任何心跳，IP 层半开即"永久静默、不重连"。�
 ### 5.3 分析入口
 
 一次任务后，把各机与 GCS 的 `*_bridge_health.jsonl` 对齐时间轴，按
-`(src=领机, topic=swarm_pose)` 看 `age_ms` / `gt1000` / `link` 事件即可定层：
+`(src=领机, topic=local_pose)` 看 `age_ms` / `gt1000` / `link` 事件即可定层：
 
 | 现象 | 结论 |
 |---|---|

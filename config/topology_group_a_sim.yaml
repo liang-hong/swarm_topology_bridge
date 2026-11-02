@@ -47,10 +47,10 @@ topics:
   - {name: uav_task_state, type: swarm_uav_interfaces/UavTaskState, max_freq: 0, mode: queue}
   - {name: mavros/state, type: mavros_msgs/State, max_freq: 0, mode: latest}
   - {name: mavros/global_position/global, type: sensor_msgs/NavSatFix, max_freq: 0, mode: latest}
-  - {name: mavros/local_position/pose, type: geometry_msgs/PoseStamped, max_freq: 0, mode: latest}
+  - {name: local_pose, type: geometry_msgs/PoseStamped, max_freq: 0, mode: latest}
+  - {name: local_velocity, type: geometry_msgs/TwistStamped, max_freq: 0, mode: latest}
   - {name: gp_origin_confirmed, type: std_msgs/Bool, max_freq: 0, mode: queue}
-  # 机间轻量位姿流: FOLLOW_ROUTE follower 订阅 /<leader>/swarm_pose（relay 从 odom 抽位置）
-  - {name: swarm_pose, type: geometry_msgs/PointStamped, max_freq: 0, mode: latest}
+  # 机间位姿流: FOLLOW_ROUTE follower 订阅 /<leader>/local_pose（pose_relay 从 odom 拆出，与 local_velocity 同 stamp）
   - {name: trajectory_intent, type: swarm_uav_interfaces/UavTrajectoryIntent, max_freq: 0, mode: queue}
   # GPS 时钟偏置（本机 bias 均值 1Hz）：桥到 GCS_A 与其他 UAV，接收端修正机间时间戳
   - {name: gps_bias, type: std_msgs/Float64, max_freq: 0, mode: queue}

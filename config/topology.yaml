@@ -37,8 +37,8 @@ topics:
   # mode（合包用，2026-10-12）：latest=每 tick 只发最新值（周期话题，可丢中间值）；
   # queue=窗口内全量保留（事件/安全相关）。max_freq 仍是硬上限（实际发送率=min(max_freq, bundle_tick_hz)）。
   - {name: mavros/global_position/global, type: sensor_msgs/NavSatFix, max_freq: 5, mode: latest}   # 标定需 ≥2.5 Hz（2 s 窗口 ≥5 样本）
-  - {name: mavros/local_position/pose, type: geometry_msgs/PoseStamped, max_freq: 10, mode: latest} # 标定 ≥2.5 Hz；GCS 取航向
-  - {name: swarm_pose, type: geometry_msgs/PointStamped, max_freq: 10, mode: latest}               # 机间轻量位姿流：relay 从 odom 抽位置（~45B vs Odometry 712B）；2026-10-12 由 12 改 10 以对齐 bundle tick（跟随者 PI 环 10 Hz）
+  - {name: local_pose, type: geometry_msgs/PoseStamped, max_freq: 10, mode: latest}                  # pose_relay 从本机 odom 拆出的位姿（stamp 与 local_velocity 相同）；标定 ≥2.5 Hz、GCS 取航向、跟随环订阅
+  - {name: local_velocity, type: geometry_msgs/TwistStamped, max_freq: 10, mode: latest}             # 同一帧 odom 拆出的速度（header 与 local_pose 逐位相同）；与 local_pose 同频，不同源重复
   - {name: mavros/rc/in, type: mavros_msgs/RCIn, max_freq: 1, mode: latest}                          # 仅供地面监视
   - {name: gp_origin_confirmed, type: std_msgs/Bool, max_freq: 0, mode: queue}
   - {name: trajectory_intent, type: swarm_uav_interfaces/UavTrajectoryIntent, max_freq: 0, mode: queue}

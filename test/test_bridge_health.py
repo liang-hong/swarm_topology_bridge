@@ -32,7 +32,7 @@ class LinkStatsTest(unittest.TestCase):
     def setUp(self):
         self.clock = FakeClock(100.0)
         self.stats = bridge_health.LinkStats(clock=self.clock)
-        self.names = {5: "swarm_pose", 6: "mavros/rc/in",
+        self.names = {5: "local_pose", 6: "mavros/rc/in",
                       8: "trajectory_intent"}
 
     def test_remote_counts_and_gap_accounting(self):
@@ -74,7 +74,7 @@ class LinkStatsTest(unittest.TestCase):
 
         summary = self.stats.summary(self.names, {5}, now=self.clock(), stale_age_s=1.5)
         row = summary["remote"][0]
-        self.assertEqual(row["topic"], "swarm_pose")
+        self.assertEqual(row["topic"], "local_pose")
         self.assertEqual(row["srcs"], 2)
         self.assertEqual(row["rx"], 3)
         self.assertEqual(row["age_max_src"], "UAV8")
@@ -85,14 +85,14 @@ class LinkStatsTest(unittest.TestCase):
         self.stats.note_rx("UAV8", 5)
         self.stats.note_rx("UAV8", 6)
         summary = self.stats.summary(self.names, {5}, now=self.clock())
-        self.assertEqual([row["topic"] for row in summary["remote"]], ["swarm_pose"])
+        self.assertEqual([row["topic"] for row in summary["remote"]], ["local_pose"])
         self.assertEqual([row["topic"] for row in summary["local"]], [])
 
     def test_matrix_skips_non_key_topics(self):
         self.stats.note_rx("UAV8", 5)
         self.stats.note_rx("UAV8", 6)
         rows = self.stats.matrix(self.names, {5}, now=self.clock())
-        self.assertEqual([row["topic"] for row in rows], ["swarm_pose"])
+        self.assertEqual([row["topic"] for row in rows], ["local_pose"])
 
     def test_stall_events_start_then_end(self):
         self.stats.note_rx("UAV8", 5)
@@ -288,7 +288,7 @@ class BundleStatsTest(unittest.TestCase):
     def setUp(self):
         self.clock = FakeClock(100.0)
         self.stats = bridge_health.LinkStats(clock=self.clock)
-        self.names = {5: "swarm_pose", 6: "mavros/rc/in"}
+        self.names = {5: "local_pose", 6: "mavros/rc/in"}
 
     def test_bundle_rx_counts_and_gap(self):
         self.stats.note_bundle_rx("UAV8", frames=1, msgs=4, nbytes=300)

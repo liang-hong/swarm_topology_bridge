@@ -2,7 +2,8 @@
 """桥接数据面观测与链路加固（纯逻辑：只依赖 stdlib + zmq，可无 ROS 单测）。
 
 为什么存在：2026-09-22（三机）与 2026-09-23（四机）两轮实飞 coverage 都因**跟随者收不到领机
-位姿流**（当时为 mavros/local_position/odom，2026-10-11 起改为轻量 swarm_pose）失败，而 bridge
+位姿流**（当时为 mavros/local_position/odom；现由 pose_relay 从同一帧 odom 拆出 local_pose /
+local_velocity 后广播）失败，而 bridge
 对数据面**零可观测**——没有 per-topic 计数、没有最后到达时间、没有断链
 日志，逐层定位只能靠排除法（见 quality_reports/2026-10-08_two_rounds_coverage_failure_root_cause.md）。
 
